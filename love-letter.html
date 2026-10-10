@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<!--
+  Midnight Love Letter
+  How to run: open this file in any web browser (double-click it). No install needed.
+  To change the message, edit the CONFIG block at the top of the <script> near the bottom.
+  The fonts load from Google Fonts, so they need an internet connection; without one the page still works with fallback fonts.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Midnight Love Letter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@1,6..96,400;1,6..96,500&family=Caveat:wght@500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one night-sky stage. A prompt above a floating, wax-sealed envelope.
+   Opening it lifts the letter onto a paper card while a small flower garden grows up from the bottom edge. */
+:root {
+  color-scheme: dark;
+  /* night sky + envelope */
+  --night: #130a16;
+  --dusk: #2e1233;
+  --star: #f7e9ff;
+  --muted: #c4a9c8;
+  --blush: #f8dde6;
+  --rose-light: #e8aab8;
+  --rose: #d28a9b;
+  --rose-deep: #a35a72;
+  --rose-shade: #7c3a54;
+  --wax-light: #d24a62;
+  --wax: #a81f3d;
+  --wax-dark: #6f1027;
+  --gold: #f3c98b;
+  /* letter paper */
+  --paper: #fdf6ef;
+  --rule: rgb(163 90 114 / .18);
+  --marker: rgb(224 96 126 / .24);
+  --ink: #5a2140;
+  --ink-soft: #8d5d75;
+  /* garden (the canvas reads these too, keep them as 6-digit hex) */
+  --petal: #ffd83d;
+  --petal-light: #fff2a1;
+  --petal-deep: #f0a51b;
+  --disk: #e88a17;
+  --rim: #fff7d1;
+  --pollen: #ffe680;
+  --stem: #2b9a5d;
+  --leaf-light: #49b874;
+  --leaf: #24844f;
+  --leaf-dark: #0f5434;
+  --grass-back: #164a31;
+  --grass-front: #0b2a1c;
+  --bubble: #5fd39a;
+  /* type */
+  --display: "Bodoni Moda", "Bodoni 72", Didot, Georgia, serif;
+  --hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--night); color: var(--blush); font-family: var(--mono); overflow-x: hidden; }
+#sky, #garden, #fx { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+#sky { z-index: 0; background: radial-gradient(110% 70% at 50% 30%, var(--dusk), var(--night) 65%); }
+#garden { z-index: 5; }
+#fx { z-index: 30; }
+
+/* ---------- Envelope scene ---------- */
+.stage { position: relative; z-index: 1; box-sizing: border-box; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(32px, 7vh, 64px); padding-block: 32px; padding-inline: 16px; transition: opacity .7s ease; }
+.stage.is-away { opacity: 0; }
+.prompt { display: grid; gap: 12px; text-align: center; transition: opacity .5s, transform .5s; }
+.prompt h1 { margin: 0; font: italic 500 clamp(1.5rem, 5.6vw, 2.2rem)/1.15 var(--display); color: var(--blush); text-wrap: balance; }
+.hint { margin: 0; font: 400 .7rem/1 var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--muted); animation: breathe 2.8s ease-in-out infinite; }
+.is-open .prompt { opacity: 0; transform: translateY(-10px); }
+
+.env-area { display: grid; justify-items: center; max-width: 100%; }
+.env-wrap { position: relative; max-width: 100%; animation: bob 5s ease-in-out infinite; }
+.env-wrap::before { content: ""; position: absolute; inset: -40% -30%; background: radial-gradient(closest-side, rgb(210 138 155 / .2), transparent); pointer-events: none; }
+.ground { width: 70%; height: 16px; margin-top: 22px; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / .55), transparent); animation: ground 5s ease-in-out infinite; }
+.is-open .env-wrap, .is-open .ground { animation-play-state: paused; }
+
+.envelope { position: relative; display: block; width: min(84vw, 360px); max-width: 100%; aspect-ratio: 3 / 2; padding: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; perspective: 1100px; -webkit-tap-highlight-color: transparent; }
+.envelope > span { position: absolute; }
+.env-back { inset: 0; z-index: 0; border-radius: 8px; background: linear-gradient(180deg, var(--rose-shade), var(--rose-deep)); box-shadow: 0 26px 44px -20px rgb(0 0 0 / .75); }
+.mini { left: 6%; right: 6%; top: 6%; bottom: 7%; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 9%; border-radius: 4px; background: var(--paper); box-shadow: 0 2px 10px rgb(0 0 0 / .2); transition: transform .9s cubic-bezier(.22, .8, .25, 1); }
+.mini-text { font: italic 400 .85rem/1.2 var(--display); color: var(--ink-soft); }
+.mini svg { width: 16px; fill: var(--wax); }
+.is-out .mini { transform: translateY(-58%); }
+.env-front { inset: 0; z-index: 3; border-radius: 0 0 8px 8px; clip-path: polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%); background: linear-gradient(172deg, var(--rose-light), var(--rose) 50%, var(--rose-deep)); }
+.env-front::before { content: ""; position: absolute; inset: 0; background:
+  linear-gradient(to top left, transparent calc(50% - .75px), rgb(90 33 64 / .22) 50%, transparent calc(50% + .75px)) left bottom / 50% 52% no-repeat,
+  linear-gradient(to top right, transparent calc(50% - .75px), rgb(90 33 64 / .22) 50%, transparent calc(50% + .75px)) right bottom / 50% 52% no-repeat; }
+.env-front::after { content: ""; position: absolute; inset: 0; clip-path: polygon(0 0, 100% 0, 50% 66%); background: linear-gradient(180deg, transparent 35%, rgb(70 18 40 / .3)); transition: opacity .3s; }
+.is-open .env-front::after { opacity: 0; }
+.front-note { position: absolute; left: 8%; bottom: 9%; font: 600 1.35rem/1 var(--hand); color: rgb(255 255 255 / .85); transform: rotate(-5deg); }
+.flap { left: 0; right: 0; top: 0; height: 58%; z-index: 4; transform-origin: 50% 0; clip-path: polygon(0 0, 100% 0, 50% 100%); background: linear-gradient(180deg, var(--rose-light), var(--rose)); transition: transform .7s cubic-bezier(.45, 0, .2, 1), filter .7s, z-index 0s linear .35s; }
+.is-open .flap { transform: rotateX(180deg); filter: brightness(.82); z-index: 1; }
+.seal { left: 50%; top: 58%; width: 50px; height: 50px; margin: -30px 0 0 -25px; z-index: 5; display: grid; place-items: center; border-radius: 47% 53% 51% 49% / 52% 46% 54% 48%; background: radial-gradient(circle at 34% 30%, var(--wax-light), var(--wax) 52%, var(--wax-dark)); box-shadow: 0 3px 6px rgb(0 0 0 / .35), inset 0 -3px 5px rgb(0 0 0 / .3), inset 0 2px 3px rgb(255 255 255 / .18); transition: transform .45s cubic-bezier(.3, 1.5, .5, 1), opacity .35s; }
+.seal::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; border: 1.5px solid rgb(0 0 0 / .2); box-shadow: 0 1px 0 rgb(255 255 255 / .14); }
+.seal svg { width: 22px; fill: var(--wax-dark); filter: drop-shadow(0 1px 0 rgb(255 255 255 / .25)); }
+.is-open .seal { transform: scale(1.4) rotate(-14deg); opacity: 0; }
+@media (hover: hover) {
+  .stage:not(.is-open) .envelope:hover .flap { transform: rotateX(20deg); }
+  .stage:not(.is-open) .envelope:hover .seal { transform: translateY(-6px); }
+}
+
+/* ---------- Letter card ---------- */
+.letter-layer { position: fixed; inset: 0; z-index: 10; box-sizing: border-box; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); }
+.letter-layer.is-stacked { align-items: start; }
+.letter { position: relative; box-sizing: border-box; width: min(100%, 440px); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--rose) transparent; padding: 26px 24px 22px; border-radius: 6px; background: radial-gradient(120% 90% at 50% 0%, transparent 60%, rgb(163 90 114 / .07)), var(--paper); color: var(--ink); box-shadow: 0 34px 70px -24px rgb(0 0 0 / .7); transform-origin: 0 0; }
+.is-stacked .letter { max-height: calc(76vh - 32px); max-height: calc(76dvh - 32px); }
+.letter-inner { transition: opacity .35s; }
+.is-blank .letter-inner { opacity: 0; }
+.letter-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; margin-bottom: 12px; }
+.to { padding: 0 6px; font: 600 1.65rem/1.1 var(--hand); background: linear-gradient(transparent 55%, var(--marker) 55% 90%, transparent 90%); }
+.letter time { font: 400 .68rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+.lines { --lh: 34px; font: 500 1.5rem/var(--lh) var(--hand); background: repeating-linear-gradient(180deg, transparent 0 calc(var(--lh) - 1px), var(--rule) calc(var(--lh) - 1px) var(--lh)) 0 -4px; }
+.ln { margin: 0; overflow-wrap: anywhere; }
+.ghost { visibility: hidden; }
+.caret { display: inline-block; width: 2px; height: 1em; margin-right: -2px; vertical-align: -.12em; background: var(--ink); animation: blink 1s steps(1) infinite; }
+.sign { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 8px; font: 600 1.75rem/1.2 var(--hand); opacity: 0; transform: translateY(6px); transition: opacity .6s, transform .6s; }
+.sign.is-shown { opacity: 1; transform: none; }
+.doodle { width: 34px; height: 34px; fill: none; stroke: var(--wax); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.doodle path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.1s .35s ease-in-out; }
+.sign.is-shown .doodle path { stroke-dashoffset: 0; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; opacity: 0; visibility: hidden; transition: opacity .5s, visibility 0s .5s; }
+.actions.is-shown { opacity: 1; visibility: visible; transition: opacity .5s; }
+.btn { padding: 12px 16px; border: 1.5px solid var(--ink); border-radius: 4px; background: transparent; color: var(--ink); font: 500 .72rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; cursor: pointer; transition: background-color .2s, color .2s, border-color .2s; }
+.btn:hover { background: var(--marker); }
+.btn-solid { background: var(--ink); color: var(--paper); }
+.btn-solid:hover { background: var(--wax); border-color: var(--wax); }
+.envelope:focus-visible, .btn:focus-visible, .letter:focus-visible { outline: 2px solid var(--gold); outline-offset: 5px; }
+.envelope:focus:not(:focus-visible), .letter:focus:not(:focus-visible) { outline: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 480px) {
+  .letter { padding: 22px 18px 18px; }
+  .lines { --lh: 30px; font-size: 1.32rem; }
+  .to { font-size: 1.45rem; }
+  .sign { font-size: 1.55rem; }
+}
+
+@keyframes bob { 50% { transform: translateY(-7px); } }
+@keyframes ground { 50% { transform: scaleX(.88); opacity: .7; } }
+@keyframes breathe { 50% { opacity: .45; } }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
+}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main class="stage" id="stage">
+  <header class="prompt">
+    <h1>Hey… I wrote you something</h1>
+    <p class="hint">Tap the envelope to open</p>
+  </header>
+  <div class="env-area">
+    <div class="env-wrap">
+      <button class="envelope" id="envelope" type="button" aria-label="Open the letter">
+        <span class="env-back"></span>
+        <span class="mini" id="mini">
+          <span class="mini-text">a little note for you…</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.6 0 5.7 3.8 4.2 7.3C19.5 16.4 12 21 12 21z"/></svg>
+        </span>
+        <span class="env-front"><span class="front-note" id="front-note">for you</span></span>
+        <span class="flap"></span>
+        <span class="seal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.6 0 5.7 3.8 4.2 7.3C19.5 16.4 12 21 12 21z"/></svg></span>
+      </button>
+    </div>
+    <div class="ground"></div>
+  </div>
+</main>
+
+<canvas id="garden" aria-hidden="true"></canvas>
+
+<div class="letter-layer" id="layer" hidden>
+  <article class="letter" id="letter" role="dialog" aria-modal="true" aria-label="Your letter" tabindex="-1">
+    <div class="letter-inner">
+      <div class="letter-head"><span class="to" id="to">To: you</span><time id="date"></time></div>
+      <div class="lines" id="lines" aria-hidden="true"></div>
+      <p class="sr-only" id="sr"></p>
+      <div class="sign" id="sign">
+        <span id="from">Love, me</span>
+        <svg class="doodle" viewBox="0 0 32 32" aria-hidden="true"><path pathLength="1" d="M16 26.5C9 21.5 4.5 17 5.2 11.6 5.8 7.4 10.4 5.6 13.5 8.3c1.2 1 2 2.3 2.5 3.6.6-1.5 1.5-2.8 2.9-3.8 3.2-2.3 7.7-.3 8 3.9.4 5.3-4.3 9.6-10.9 14.5z"/></svg>
+      </div>
+      <div class="actions" id="actions">
+        <button class="btn" id="again" type="button">Read again</button>
+        <button class="btn btn-solid" id="close" type="button">Close letter</button>
+      </div>
+    </div>
+  </article>
+</div>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+<script>
+// =============================================================
+//  Edit the letter here: who it's for, the lines, the sign-off
+// =============================================================
+const CONFIG = {
+  to: "you",
+  signoff: "Love, me",
+  lines: [
+    "I made this little corner of the internet just for you.",
+    "Some feelings deserve more than a quick text,",
+    "so I folded mine into a letter.",
+    "You turn my ordinary days into my favorite ones.",
+    "Thank you for being exactly who you are."
+  ]
+};
+
+const $ = s => document.querySelector(s);
+const stage = $("#stage"), env = $("#envelope"), mini = $("#mini"), seal = $(".seal");
+const layer = $("#layer"), letter = $("#letter"), linesEl = $("#lines"), sign = $("#sign"), actions = $("#actions");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const smooth = reduce ? "auto" : "smooth";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const wait = ms => sleep(reduce ? 40 : ms);
+const caret = Object.assign(document.createElement("span"), { className: "caret" });
+let state = "closed", token = 0, skip = false;
+
+// Put the CONFIG text on the page
+$("#to").textContent = "To: " + CONFIG.to;
+$("#front-note").textContent = "for " + CONFIG.to;
+$("#from").textContent = CONFIG.signoff;
+$("#sr").textContent = CONFIG.lines.join(" ") + " " + CONFIG.signoff;
+const today = new Date(), dateEl = $("#date");
+dateEl.dateTime = today.toLocaleDateString("en-CA");
+dateEl.textContent = today.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+// ---------- The letter writes itself ----------
+// Each line holds its full text as invisible "ghost" text, so the card never jumps while typing.
+function prep() {
+  linesEl.textContent = "";
+  return CONFIG.lines.map(text => {
+    const p = document.createElement("p"), typed = document.createTextNode(""), ghost = document.createElement("span");
+    p.className = "ln"; ghost.className = "ghost"; ghost.textContent = text;
+    p.append(typed, ghost); linesEl.append(p);
+    return { text, p, typed, ghost };
+  });
+}
+
+// If the letter is taller than the screen, scroll it so the pen stays in view.
+function follow() {
+  if (letter.scrollHeight <= letter.clientHeight + 2) return;
+  const y = caret.offsetTop;
+  if (y + 44 > letter.scrollTop + letter.clientHeight) letter.scrollTo({ top: y - letter.clientHeight * .55, behavior: smooth });
+}
+
+async function type() {
+  const my = ++token; skip = false;
+  sign.classList.remove("is-shown"); actions.classList.remove("is-shown");
+  letter.scrollTop = 0;
+  const rows = prep();
+  for (const r of rows) {
+    if (my !== token) return;
+    r.p.insertBefore(caret, r.ghost);
+    for (let i = 1; i <= r.text.length; i++) {
+      if (my !== token) return;
+      if (skip || reduce) i = r.text.length;
+      r.typed.data = r.text.slice(0, i);
+      r.ghost.textContent = r.text.slice(i);
+      follow();
+      if (skip || reduce) break;
+      const ch = r.text[i - 1];
+      await sleep(ch === "," ? 240 : ".!?…".includes(ch) ? 380 : 26 + Math.random() * 42);
+    }
+    if (!skip && !reduce) await sleep(260);
+  }
+  if (my !== token) return;
+  caret.remove();
+  sign.classList.add("is-shown");
+  await wait(1300);
+  if (my !== token) return;
+  actions.classList.add("is-shown");
+  if (letter.scrollHeight > letter.clientHeight + 2) letter.scrollTo({ top: letter.scrollHeight, behavior: smooth });
+  const d = sign.querySelector(".doodle").getBoundingClientRect();
+  burst(d.left + d.width / 2, d.top + d.height / 2, 26);
+}
+
+// ---------- Opening and closing ----------
+// FLIP: the card grows out of the little letter's spot, or shrinks back into it.
+function flip(expand) {
+  letter.style.transition = "none";
+  letter.style.transform = "none";
+  const a = mini.getBoundingClientRect(), b = letter.getBoundingClientRect();
+  const t = `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
+  if (expand) letter.style.transform = t;
+  void letter.offsetWidth;
+  letter.style.transition = "transform .75s cubic-bezier(.2, .75, .2, 1)";
+  letter.style.transform = expand ? "none" : t;
+  return wait(780);
+}
+
+// Narrow screens: the card sits at the top so the flowers have room below it.
+// Wide screens: the card stays centred and the flowers grow on both sides.
+function arrange() {
+  const cardW = Math.min(innerWidth - 32, 440);
+  layer.classList.toggle("is-stacked", (innerWidth - cardW) / 2 < 150);
+}
+
+async function openLetter() {
+  if (state !== "closed") return;
+  state = "busy";
+  const s = seal.getBoundingClientRect();
+  stage.classList.add("is-open");                 // seal pops, flap swings open
+  burst(s.left + s.width / 2, s.top + s.height / 2, 16);
+  await wait(650);
+  stage.classList.add("is-out");                  // letter slides up
+  await wait(950);
+  prep();
+  letter.classList.add("is-blank");
+  layer.hidden = false;
+  arrange();
+  stage.inert = true;
+  mini.style.opacity = "0";
+  const grown = flip(true);                       // the letter unfolds into the card,
+  stage.classList.add("is-away");                 // the envelope fades away,
+  growGarden();                                   // and the flowers start to grow
+  await grown;
+  letter.classList.remove("is-blank");
+  letter.focus({ preventScroll: true });
+  state = "open";
+  type();
+}
+
+async function closeLetter() {
+  if (state !== "open") return;
+  state = "busy"; token++;
+  letter.classList.add("is-blank");
+  shrinkGarden();                                 // flowers fold up and sink back down
+  await wait(320);
+  stage.classList.remove("is-away");
+  await flip(false);
+  layer.hidden = true;
+  letter.style.transition = letter.style.transform = "";
+  mini.style.opacity = "";
+  stage.inert = false;
+  stage.classList.remove("is-out");               // letter slides back in
+  await wait(850);
+  stage.classList.remove("is-open");              // flap closes, seal returns
+  await wait(700);
+  state = "closed";
+  env.focus({ preventScroll: true });
+}
+
+env.addEventListener("click", openLetter);
+$("#close").addEventListener("click", closeLetter);
+$("#again").addEventListener("click", () => { if (state === "open") { letter.focus({ preventScroll: true }); type(); } });
+letter.addEventListener("click", e => { if (!e.target.closest("button")) skip = true; });   // tap the letter to skip the typing
+addEventListener("keydown", e => { if (e.key === "Escape") closeLetter(); });
+
+// ---------- Canvases: night sky (back), garden (middle), heart bursts (front) ----------
+const sky = $("#sky"), garden = $("#garden"), fx = $("#fx");
+const sc = sky.getContext("2d"), gc = garden.getContext("2d"), fc = fx.getContext("2d");
+const css = name => getComputedStyle(document.documentElement).getPropertyValue("--" + name).trim();
+const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
+// Colours come from the CSS variables at the top of the style sheet ("leaf-light" becomes P.leafLight)
+const P = {};
+for (const name of ["star", "rose-light", "rose", "gold", "wax-light", "blush", "petal", "petal-light", "petal-deep", "disk", "rim", "pollen", "stem", "leaf-light", "leaf", "leaf-dark", "grass-back", "grass-front", "bubble"])
+  P[name.replace(/-(\w)/g, (_, c) => c.toUpperCase())] = css(name);
+const HEART = new Path2D("M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.6 0 5.7 3.8 4.2 7.3C19.5 16.4 12 21 12 21z");
+const TAU = Math.PI * 2;
+let W = 0, H = 0, last = 0;
+
+// ---------- Sky: twinkling stars and drifting rose petals ----------
+const stars = Array.from({ length: 170 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.1 + .25, ph: Math.random() * TAU, sp: .5 + Math.random() * 1.5 }));
+let petals = [];
+function newPetal(y) {
+  return { x: Math.random() * W, y, r: 4 + Math.random() * 5, vy: .35 + Math.random() * .55, vx: -.15 + Math.random() * .3, rot: Math.random() * TAU, vr: (Math.random() - .5) * .04, ph: Math.random() * TAU };
+}
+function drawSky(t, dt) {
+  sc.clearRect(0, 0, W, H);
+  sc.fillStyle = P.star;
+  for (const s of stars) {
+    sc.globalAlpha = reduce ? .7 : .3 + .7 * (.5 + .5 * Math.sin(t / 1000 * s.sp + s.ph));
+    sc.beginPath(); sc.arc(s.x * W, s.y * H, s.r, 0, TAU); sc.fill();
+  }
+  sc.fillStyle = P.roseLight; sc.globalAlpha = .55;
+  for (const p of petals) {
+    if (dt) {
+      p.y += p.vy * dt; p.x += (p.vx + Math.sin(t / 1100 + p.ph) * .3) * dt; p.rot += p.vr * dt;
+      if (p.y > H + 12) Object.assign(p, newPetal(-12));
+    }
+    sc.save(); sc.translate(p.x, p.y); sc.rotate(p.rot);
+    sc.beginPath(); sc.ellipse(0, 0, p.r, p.r * .58, 0, 0, TAU); sc.fill(); sc.restore();
+  }
+  sc.globalAlpha = 1;
+}
+
+// ---------- Heart bursts (when the seal pops and when the letter is signed) ----------
+let hearts = [];
+const HEART_COLORS = [P.roseLight, P.rose, P.gold, P.waxLight, P.blush];
+function drawHeart(c, x, y, s, rot) {
+  c.save(); c.translate(x, y); c.rotate(rot); c.scale(s / 24, s / 24); c.translate(-12, -12); c.fill(HEART); c.restore();
+}
+function burst(x, y, n) {
+  if (reduce) return;
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (Math.random() - .5) * 2.4, v = 1.6 + Math.random() * 3.4;
+    hearts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 70 + Math.random() * 60, s: 8 + Math.random() * 11, c: HEART_COLORS[i % HEART_COLORS.length], rot: (Math.random() - .5) * .6, vr: (Math.random() - .5) * .04 });
+  }
+}
+function drawBursts(dt) {
+  fc.clearRect(0, 0, W, H);
+  hearts = hearts.filter(h => (h.life -= dt) > 0);
+  for (const h of hearts) {
+    h.vx *= .98; h.vy = h.vy * .98 - .03 * dt; h.x += h.vx * dt; h.y += h.vy * dt; h.rot += h.vr * dt;
+    fc.globalAlpha = Math.min(1, h.life / 40); fc.fillStyle = h.c; drawHeart(fc, h.x, h.y, h.s, h.rot);
+  }
+  fc.globalAlpha = 1;
+}
+
+// ---------- Garden: flowers grow from the bottom while the letter is open ----------
+// G.t is the garden's clock in seconds. It runs forward while the letter is open and
+// backward (faster) when it closes, so the flowers fold up and sink away.
+const G = { t: 0, dir: 0, end: 4, beds: [], blades: [], front: [], flies: [], bubbles: [], nextBubble: 0 };
+const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+const easeOut = v => 1 - (1 - v) ** 3;
+const easeBack = v => 1 + 2.6 * (v - 1) ** 3 + 1.6 * (v - 1) ** 2;   // overshoots a little, like a pop
+const bez = (a, b, c, d, t) => { const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d; };
+const dbez = (a, b, c, d, t) => { const u = 1 - t; return 3 * u * u * (b - a) + 6 * u * t * (c - b) + 3 * t * t * (d - c); };
+function seeded(a) {   // repeatable random numbers, so a resize keeps the same garden
+  return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+
+// Soft firefly glow, drawn once and reused
+const glowDot = document.createElement("canvas");
+glowDot.width = glowDot.height = 64;
+{
+  const g = glowDot.getContext("2d"), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, rgba(P.petalLight, 1)); r.addColorStop(.2, rgba(P.pollen, .8)); r.addColorStop(.5, rgba(P.pollen, .2)); r.addColorStop(1, rgba(P.pollen, 0));
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+}
+
+// A stem is a cubic Bézier curve from its base to its tip, bowed sideways by `bend` pixels.
+function makeStem(x0, y0, x3, y3, bend, R) {
+  const dx = x3 - x0, dy = y3 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+  return {
+    x0, y0, x3, y3,
+    x1: x0 + dx * .33 + nx * bend, y1: y0 + dy * .33 + ny * bend,
+    x2: x0 + dx * .68 + nx * bend * .6, y2: y0 + dy * .68 + ny * bend * .6,
+    amp: 3 + R() * 4 + l * .012, ph: R() * TAU, sp: .0008 + R() * .0004,
+    leaves: [], head: null
+  };
+}
+
+// A bed is one bouquet: flower stems fanning out from one spot, two fern fronds and some tall grass.
+function makeBed(cx, h, spread, n, R) {
+  const s = Math.max(24, Math.min(48, h * .19));   // flower size
+  const bed = { cx, h, spread, stems: [], fronds: [], tall: [] };
+  const mid = (n - 1) / 2;
+  const order = [...Array(n).keys()].sort((a, b) => Math.abs(b - mid) - Math.abs(a - mid));   // outer stems first, so the middle one is in front
+  order.forEach((i, k) => {
+    const f = n > 1 ? (i - mid) / mid : 0;
+    const tipH = (h - s) * (1 - Math.abs(f) * .3) * (.9 + R() * .1);
+    const st = makeStem(cx + f * 14, H + 14, cx + f * spread * (.88 + R() * .24), H - tipH, (R() - .5) * 26, R);
+    Object.assign(st, { w: Math.max(2.2, s * .07), color: P.stem, start: .5 + k * .16, dur: 1.4 + R() * .4, head: { s: s * (.9 + R() * .18), dur: 1.1 } });
+    const count = Math.round(3 + tipH / 55);
+    for (let j = 0; j < count; j++) {
+      const u = .08 + j / count * .7 + R() * .04, len = s * (1.12 - u * .6) * (.8 + R() * .3);
+      st.leaves.push({ u, side: j % 2 ? 1 : -1, a: .6 + R() * .45, len, wid: len * (.33 + R() * .08), ph: R() * TAU, light: R() < .6 ? P.leafLight : P.leaf, dark: R() < .5 ? P.leaf : P.leafDark });
+    }
+    bed.stems.push(st);
+  });
+  for (const dir of [-1, 1]) {   // fern fronds arching out at the base
+    const fr = makeStem(cx + dir * 10, H + 12, cx + dir * spread * (1 + R() * .25), H - h * (.3 + R() * .12), -dir * (30 + R() * 25), R);
+    Object.assign(fr, { w: 1.6, color: P.leafDark, start: .2 + R() * .3, dur: 1.4 });
+    for (let u = .1; u < .95; u += .065) for (const side of [-1, 1]) {
+      const len = s * .5 * (1.05 - u * .7);
+      fr.leaves.push({ u, side, a: .95, len, wid: len * .3, ph: R() * TAU, light: P.leaf, dark: P.leafDark });
+    }
+    bed.fronds.push(fr);
+  }
+  for (let j = 0; j < 4; j++) {   // tall grass blades on either side
+    const dir = j % 2 ? 1 : -1;
+    bed.tall.push({ x: cx + dir * spread * (.75 + R() * .6), h: h * (.45 + R() * .4), w: 4 + R() * 2.5, lean: dir * (20 + R() * 40), color: R() < .5 ? P.leaf : P.grassBack, start: .1 + R() * .4, dur: 1.2 + R() * .4, ph: R() * TAU });
+  }
+  return bed;
+}
+
+// Plant the beds around the card: one bouquet below it on phones, one on each side on wide screens.
+function layoutGarden() {
+  const R = seeded(11);
+  const side = letter.offsetLeft, below = H - letter.offsetTop - letter.offsetHeight;
+  G.beds = []; G.blades = []; G.front = [];
+  if (side >= 150) {
+    const h = Math.min(H * .62, 470), spread = Math.min(side * .36, 130);
+    G.beds.push(makeBed(side / 2, h, spread, 4, R), makeBed(W - side / 2, h, spread, 4, R));
+    if (below > 130) G.beds.push(makeBed(W / 2, Math.min(below - 20, 250), Math.min(letter.offsetWidth * .32, 140), 3, R));
+  } else {
+    G.beds.push(makeBed(W / 2, Math.max(H * .2, Math.min(H * .48, below - 12)), Math.min(W * .3, 150), W < 380 ? 4 : 5, R));
+  }
+  for (let x = -6; x < W + 6; x += 6 + R() * 9) {   // a strip of grass along the whole bottom edge
+    const tall = R() < .1, h = tall ? 60 + R() * H * .16 : 12 + R() * 38;
+    G.blades.push({ x, h, w: tall ? 4 + R() * 2 : 2.5 + R() * 3, lean: (R() - .5) * h * .5, color: R() < .5 ? P.grassBack : P.leafDark, start: R() * .6, dur: .8 + R() * .6, ph: R() * TAU });
+  }
+  for (let x = R() * 30; x < W; x += 26 + R() * 40)   // a few dark blades in front, for depth
+    G.front.push({ x, h: 8 + R() * 22, w: 3 + R() * 3, lean: (R() - .5) * 16, color: P.grassFront, start: .2 + R() * .5, dur: .7, ph: R() * TAU });
+  G.end = Math.max(2.4, ...G.beds.flatMap(b => b.stems.map(s => s.start + s.dur + s.head.dur)));
+}
+
+// Where a (partly grown, swaying) stem is this frame
+function shape(st, now) {
+  const q = (G.t - st.start) / st.dur, p = easeOut(clamp01(q));
+  const sw = st.amp * (Math.sin(now * st.sp + st.ph) * .75 + Math.sin(now * st.sp * 2.3 + st.ph * 1.7) * .25);
+  const X = [st.x0, st.x1 + sw * .15, st.x2 + sw * .55, st.x3 + sw], Y = [st.y0, st.y1, st.y2, st.y3 + Math.abs(sw) * .06];
+  const L = (a, b) => a + (b - a) * p;   // de Casteljau: the part of the curve from 0 to p
+  const ax = L(X[0], X[1]), ay = L(Y[0], Y[1]), bx = L(X[1], X[2]), by = L(Y[1], Y[2]), cx = L(X[2], X[3]), cy = L(Y[2], Y[3]);
+  const dx = L(ax, bx), dy = L(ay, by), ex = L(bx, cx), ey = L(by, cy), fx = L(dx, ex), fy = L(dy, ey);
+  st.g = { q, p, X, Y, seg: [ax, ay, dx, dy, fx, fy], ang: Math.atan2(fy - dy, fx - dx) + Math.PI / 2 };
+}
+const bloomOf = st => clamp01((G.t - st.start - st.dur) / st.head.dur);
+
+function radial(c, x, y, r, hex, a) {
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, rgba(hex, a)); g.addColorStop(1, rgba(hex, 0));
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+}
+
+function blade(c, b, now) {
+  const g = easeOut(clamp01((G.t - b.start) / b.dur));
+  if (g <= 0) return;
+  const h = b.h * g, sway = Math.sin(now * .0011 + b.x * .012 + b.ph) * (2 + b.h * .05);
+  const base = H + 4, bend = (b.lean + sway) * g;
+  c.fillStyle = b.color;
+  c.beginPath();
+  c.moveTo(b.x - b.w / 2, base);
+  c.quadraticCurveTo(b.x - b.w * .2 + bend * .25, base - h * .55, b.x + bend, base - h);
+  c.quadraticCurveTo(b.x + b.w * .2 + bend * .25, base - h * .55, b.x + b.w / 2, base);
+  c.fill();
+}
+
+// Two-tone leaf: the half facing the sky is lighter
+function leaf(c, x, y, ang, len, wid, side, light, dark) {
+  if (len < .6) return;
+  c.save(); c.translate(x, y); c.rotate(ang);
+  for (const half of [-1, 1]) {
+    c.fillStyle = half === side ? dark : light;
+    c.beginPath(); c.moveTo(0, 0);
+    c.bezierCurveTo(half * wid, -len * .28, half * wid * .62, -len * .78, 0, -len);
+    c.closePath(); c.fill();
+  }
+  c.restore();
+}
+
+function petal(c, rot, len, wid, base, tip, edge) {
+  c.save(); c.rotate(rot);
+  const g = c.createLinearGradient(0, 0, 0, -len);
+  g.addColorStop(0, base); g.addColorStop(1, tip);
+  c.fillStyle = g;
+  c.beginPath(); c.moveTo(0, 0);
+  c.bezierCurveTo(wid, -len * .25, wid * .95, -len * .92, 0, -len);
+  c.bezierCurveTo(-wid * .95, -len * .92, -wid, -len * .25, 0, 0);
+  c.fill();
+  if (edge) { c.strokeStyle = edge; c.lineWidth = .8; c.stroke(); }
+  c.restore();
+}
+
+// One cup-shaped flower seen from the side. bud: 0..1 size of the bud, b: 0..1 how far it has opened.
+function flower(c, x, y, ang, s, bud, b) {
+  c.save(); c.translate(x, y); c.rotate(ang);
+  const k = .4 + .6 * bud; c.scale(k, k);
+  const a = .08 + .92 * b, edge = rgba(P.petalDeep, .75);
+  for (const h of [-1, 1]) leaf(c, 0, 0, h * (.25 + .5 * a), s * .36, s * .12, h, P.leafLight, P.leaf);   // green sepals
+  petal(c, 0, s * .95, s * .5, P.petalDeep, P.petal, edge);    // back petals
+  petal(c, -.6 * a, s * .9, s * .46, P.petalDeep, P.petal, edge);
+  petal(c, .6 * a, s * .9, s * .46, P.petalDeep, P.petal, edge);
+  if (b > .2) {                                               // the open cup: a pale rim around a golden centre
+    const d = Math.min(1, (b - .2) / .6), rx = s * .36 * d, ry = s * .12 * d, cy = -s * .5;
+    c.fillStyle = P.rim; c.beginPath(); c.ellipse(0, cy, rx, ry, 0, 0, TAU); c.fill();
+    c.fillStyle = P.disk; c.beginPath(); c.ellipse(0, cy + ry * .15, rx * .66, ry * .58, 0, 0, TAU); c.fill();
+    c.fillStyle = P.petalLight;
+    for (let i = -2; i <= 2; i++) { c.beginPath(); c.arc(i * rx * .24, cy - ry * (.3 + .3 * (1 - Math.abs(i) / 2)), s * .028 * d, 0, TAU); c.fill(); }
+  }
+  petal(c, -.98 * a, s * .8, s * .42, P.petal, P.petalLight, edge);   // front petals
+  petal(c, .98 * a, s * .8, s * .42, P.petal, P.petalLight, edge);
+  petal(c, 0, s * .5, s * .58, P.petal, P.petalLight, edge);
+  c.restore();
+}
+
+function drawStem(c, st, now) {
+  const { q, p, X, Y, seg, ang } = st.g;
+  if (p <= 0) return;
+  c.lineCap = "round"; c.strokeStyle = st.color; c.lineWidth = st.w;
+  c.beginPath(); c.moveTo(X[0], Y[0]); c.bezierCurveTo(seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]); c.stroke();
+  if (st.head) {   // a thin highlight down one side of the stem
+    const o = st.w * .25;
+    c.strokeStyle = rgba(P.leafLight, .55); c.lineWidth = st.w * .35;
+    c.beginPath(); c.moveTo(X[0] + o, Y[0]); c.bezierCurveTo(seg[0] + o, seg[1], seg[2] + o, seg[3], seg[4] + o, seg[5]); c.stroke();
+  }
+  for (const L of st.leaves) {   // leaves sprout just after the tip passes them
+    const g = clamp01((q - L.u) / .3);
+    if (g <= 0) continue;
+    const k = easeBack(g), x = bez(X[0], X[1], X[2], X[3], L.u), y = bez(Y[0], Y[1], Y[2], Y[3], L.u);
+    const dir = Math.atan2(dbez(Y[0], Y[1], Y[2], Y[3], L.u), dbez(X[0], X[1], X[2], X[3], L.u)) + Math.PI / 2;
+    leaf(c, x, y, dir + L.side * L.a + Math.sin(now * .0017 + L.ph) * .07, L.len * k, L.wid * k, L.side, L.light, L.dark);
+  }
+  if (st.head) {   // a bud swells at the tip, then opens
+    const bud = clamp01((q - .8) / .25);
+    if (bud > 0) flower(c, seg[4], seg[5], ang * .65, st.head.s, easeOut(bud), easeBack(bloomOf(st)));
+  }
+}
+
+// Fireflies drift up from the open flowers; heart bubbles float out of the bouquets.
+function floaters(c, now, dt) {
+  if (G.dir > 0) {
+    for (const bed of G.beds) for (const st of bed.stems) {
+      if (bloomOf(st) > .6 && G.flies.length < 20 * G.beds.length && Math.random() < .014 * dt) {
+        const s = st.head.s;
+        G.flies.push({ x: st.g.seg[4] + (Math.random() - .5) * s * 1.6, y: st.g.seg[5] - s * (.2 + Math.random()), vy: -(.12 + Math.random() * .3), r: .8 + Math.random() * 1.3, life: 0, max: 160 + Math.random() * 200, ph: Math.random() * TAU });
+      }
+    }
+    G.nextBubble -= dt;
+    if (G.nextBubble <= 0 && G.t > 2.2 && G.bubbles.length < 3 + 3 * G.beds.length) {
+      const bed = G.beds[Math.random() * G.beds.length | 0];
+      G.nextBubble = 45 + Math.random() * 70;
+      G.bubbles.push({ x: bed.cx + (Math.random() - .5) * bed.spread * 2.4, y: H - bed.h * (.35 + Math.random() * .55), r: 7 + Math.random() * 13, thick: Math.random() < .55, vy: -(.18 + Math.random() * .28), life: 0, max: 280 + Math.random() * 220, ph: Math.random() * TAU });
+    }
+  }
+  const fast = G.dir < 0 ? 4 : 1;   // when the letter closes, they fade out quickly
+  G.flies = G.flies.filter(f => (f.life += dt * fast) < f.max);
+  G.bubbles = G.bubbles.filter(b => (b.life += dt * fast) < b.max && b.y > -40);
+  c.globalCompositeOperation = "lighter";
+  for (const f of G.flies) {
+    f.y += f.vy * dt; f.x += Math.sin(now * .0015 + f.ph) * .25 * dt;
+    c.globalAlpha = Math.max(0, Math.min(1, f.life / 30, (f.max - f.life) / 60)) * (.65 + .35 * Math.sin(now * .006 + f.ph));
+    c.drawImage(glowDot, f.x - f.r * 6, f.y - f.r * 6, f.r * 12, f.r * 12);
+  }
+  c.globalCompositeOperation = "source-over";
+  for (const b of G.bubbles) {
+    b.y += b.vy * dt;
+    const x = b.x + Math.sin(now * .001 + b.ph) * 8;
+    c.globalAlpha = Math.max(0, Math.min(1, b.life / 40, (b.max - b.life) / 90)) * .9;
+    c.strokeStyle = P.bubble; c.lineWidth = b.thick ? Math.max(2, b.r * .2) : 1;
+    c.beginPath(); c.arc(x, b.y, b.r, 0, TAU); c.stroke();
+    c.fillStyle = P.waxLight; drawHeart(c, x, b.y + b.r * .05, b.r * (b.thick ? 1.05 : 1.2), Math.sin(now * .0012 + b.ph) * .15);
+  }
+  c.globalAlpha = 1;
+}
+
+function drawGarden(now, dt) {
+  const c = gc;
+  c.clearRect(0, 0, W, H);
+  for (const bed of G.beds) for (const st of [...bed.fronds, ...bed.stems]) shape(st, now);
+  // Light first: a warm haze behind each bouquet and a glow behind every open flower
+  c.globalCompositeOperation = "lighter";
+  for (const bed of G.beds) {
+    const open = bed.stems.reduce((sum, st) => sum + bloomOf(st), 0) / bed.stems.length;
+    if (open > 0) radial(c, bed.cx, H - bed.h * .72, Math.max(bed.spread * 1.5, bed.h * .75), P.petal, .13 * open);
+    for (const st of bed.stems) {
+      const b = bloomOf(st), r = st.head.s, a = st.g.ang * .65;
+      if (b > 0) radial(c, st.g.seg[4] + Math.sin(a) * r * .5, st.g.seg[5] - Math.cos(a) * r * .5, r * 1.9, P.petal, .3 * b);
+    }
+  }
+  c.globalCompositeOperation = "source-over";
+  for (const b of G.blades) blade(c, b, now);
+  for (const bed of G.beds) { for (const b of bed.tall) blade(c, b, now); for (const fr of bed.fronds) drawStem(c, fr, now); }
+  for (const bed of G.beds) for (const st of bed.stems) drawStem(c, st, now);
+  for (const b of G.front) blade(c, b, now);
+  if (!reduce) floaters(c, now, dt);
+}
+
+function growGarden() {
+  layoutGarden();
+  G.dir = 1;
+  if (reduce) { G.t = G.end; drawGarden(0, 0); }   // no animation: show it fully grown
+}
+function shrinkGarden() {
+  G.dir = -1;
+  if (reduce) { G.dir = 0; G.t = 0; gc.clearRect(0, 0, W, H); }
+}
+
+// ---------- Animation loop ----------
+function size() {
+  const d = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  for (const [cv, c] of [[sky, sc], [garden, gc], [fx, fc]]) { cv.width = W * d; cv.height = H * d; c.setTransform(d, 0, 0, d, 0, 0); }
+  if (!petals.length) petals = Array.from({ length: 14 }, () => newPetal(Math.random() * H));
+  if (!layer.hidden) { arrange(); layoutGarden(); }
+  if (reduce) { drawSky(0, 0); if (G.t > 0) drawGarden(0, 0); }
+}
+function frame(t) {
+  const dt = Math.min(3, (t - last) / 16.7 || 1); last = t;
+  drawSky(t, dt);
+  if (G.dir) {
+    G.t = G.dir > 0 ? Math.min(G.end, G.t + dt * .0167) : G.t - dt * .0167 * 2.4;
+    if (G.t > 0) drawGarden(t, dt);
+    else { G.t = 0; G.dir = 0; G.flies = []; G.bubbles = []; gc.clearRect(0, 0, W, H); }
+  }
+  drawBursts(dt);
+  requestAnimationFrame(frame);
+}
+size();
+addEventListener("resize", size);
+if (!reduce) requestAnimationFrame(frame);
+</script>
+</body>
+</html>
